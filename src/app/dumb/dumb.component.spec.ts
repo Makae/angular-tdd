@@ -33,13 +33,23 @@ describe('DumbComponent', () => {
     expect(p.nativeElement.innerText as string).toContain("dumb works!");
   });
 
+  it('should handle input', () => {
+    const p = fixture.debugElement.query(By.css("p.input"));
+
+    component.inputValue = 'input works!';
+
+    // fixture.detectChanges();
+
+    expect(p.nativeElement.innerText as string).toContain("input works!");
+  });
+
   // Event Handling
   it('should update content when onButtonClick is called', () => {
     const button = fixture.debugElement.query(By.css("button"));
 
     button.triggerEventHandler('click', {});
-
     fixture.detectChanges();
+
     const p = fixture.debugElement.query(By.css("p"));
     expect(p.nativeElement.innerText as string).toContain("other content");
   });
