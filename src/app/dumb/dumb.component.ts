@@ -6,10 +6,13 @@ import { Component, OnInit } from '@angular/core';
   styleUrls: ['./dumb.component.scss']
 })
 export class DumbComponent implements OnInit {
-
+  public content = 'dumb works!'
   constructor() { }
 
   ngOnInit(): void {
   }
 
+  public onButtonClick(): void {
+    this.content = 'other content';
+  }
 }
