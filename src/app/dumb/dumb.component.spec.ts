@@ -38,7 +38,7 @@ describe('DumbComponent', () => {
 
     component.inputValue = 'input works!';
 
-    // fixture.detectChanges();
+    fixture.detectChanges();
 
     expect(p.nativeElement.innerText as string).toContain("input works!");
   });

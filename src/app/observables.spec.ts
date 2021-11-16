@@ -1,5 +1,7 @@
-import {Location, LocationsAndGroups, LocationService} from './services/location.service';
-import {combineLatest, forkJoin, Observable} from 'rxjs';
+import {Location, LocationGroup, LocationsAndGroups, LocationService} from './services/location.service';
+import {combineLatest, concat, EMPTY, forkJoin, NEVER, Observable, of} from 'rxjs';
+import {map, startWith} from 'rxjs/operators';
+import any = jasmine.any;
 
 describe('Observables', () => {
   const locationService = new LocationService();
@@ -79,6 +81,70 @@ describe('Observables', () => {
       expect(completeCalled).toBeTrue();
       expect(errorCalled).toBeFalse();
     });
+
+  });
+
+  describe('[EMPTY] Observables', () => {
+    const testCallbacks = (observable: Observable<any>): { nextCalled: boolean, completeCalled: boolean, errorCalled: boolean } => {
+      let result = {
+        nextCalled: false,
+        nextValue: any,
+        completeCalled: false,
+        errorCalled: false
+      };
+      observable.subscribe({
+        next: (value) => {
+          result.nextCalled = true;
+          result.nextValue = value;
+        },
+        complete: () => {
+          result.completeCalled = true;
+        },
+        error: () => {
+          result.errorCalled = true;
+        }
+      });
+
+      jasmine.clock().tick(100);
+
+      return result;
+    }
+    it('should not trigger next on EMPTY', () => {
+      const result = testCallbacks(EMPTY);
+      expect(result.nextCalled).toBeFalse();
+      expect(result.completeCalled).toBeTrue();
+      expect(result.errorCalled).toBeFalse();
+    });
+
+    it('should not trigger next nor complete on NEVER', () => {
+      const result = testCallbacks(NEVER);
+      expect(result.nextCalled).toBeFalse();
+      expect(result.completeCalled).toBeFalse();
+      expect(result.errorCalled).toBeFalse();
+    });
+
+    it('should not trigger next on of()', () => {
+      const result = testCallbacks(of());
+      expect(result.nextCalled).toBeFalse();
+      expect(result.completeCalled).toBeTrue();
+      expect(result.errorCalled).toBeFalse();
+    });
+
+    it('should do trigger next on of({})', () => {
+      const result = testCallbacks(of({}));
+      expect(result.nextCalled).toBeTrue();
+      expect(result.completeCalled).toBeTrue();
+      expect(result.errorCalled).toBeFalse();
+    });
+
+    it('should do trigger next on EMPTY.reduce()', () => {
+      const result = testCallbacks(forkJoin(EMPTY.pipe(startWith(''))));
+      expect(result.nextCalled).toBeTrue();
+      expect(result.completeCalled).toBeTrue();
+      expect(result.errorCalled).toBeFalse();
+    });
+
+
   });
 
   describe('[Combine / Coordinate Requests]', () => {
@@ -107,19 +173,44 @@ describe('Observables', () => {
        * on its outer observable. The content of arguments passed to the subscribe methods are the last next values of the
        * observables.
        *
-       * See also "Should return last next value with fork Join"
+       * So ForkJoin is the correct combination method for this use case
        */
       let result: LocationsAndGroups | undefined;
       forkJoin({
         locations: locationService.getLocations(),
         groups: locationService.getLocationGroups()
-      }).subscribe((groups) => {
-        result = groups;
+      }).subscribe((lastObservableValues) => {
+        result = lastObservableValues;
       });
       jasmine.clock().tick(100);
 
       expect(result?.locations).toHaveSize(3);
       expect(result?.groups).toHaveSize(2);
+    });
+
+    it('should fetch locationGroups and locations in serial with concat', () => {
+      /**
+       * UPDATE and REFETCH data
+       * concat waits for the COMPLETION of each inner observable in succession the results are emitted directly with the call to  next()
+       * on its outer observable.
+       *
+       * In order to use it with a preceeding Observable<void> we have tell typescript that the returned value is indeed a LocationGroup[]
+       * This is what the map is for.
+       */
+      let result: any;
+      concat(
+        locationService.updateLocation(myNewLocation),
+        locationService.getLocationGroups()
+      )
+        .pipe(map(result => result as LocationGroup[]))
+        .subscribe((value: LocationGroup[]) => {
+          return result = value;
+        });
+      jasmine.clock().tick(100);
+
+      expect(result).toHaveSize(2);
+      expect(result[0].name).toBe("Bern");
+      expect(result[1].name).toBe("Matte");
     });
   });
 
@@ -127,9 +218,11 @@ describe('Observables', () => {
     it('should not trigger with combineLatest when Fetching after Update', () => {
       let result;
 
-      // Do not use it this way, as updateLocation will never emit a <next> value,
-      // so there is one of the 2 values missing which combineLatest requires
-      // for triggering the outer observables' <next> callback
+      /*
+       Do not use it this way, as updateLocation will never emit a <next> value,
+       so there is one of the 2 values missing which combineLatest requires
+       for triggering the outer observables' <next> callback
+      */
       combineLatest([
         locationService.updateLocation(myNewLocation),
         locationService.getLocationGroups()
