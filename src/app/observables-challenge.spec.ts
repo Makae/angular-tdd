@@ -4,7 +4,7 @@ import {QueryService} from './services/query.service';
 import {TypingSimulatorService} from './services/typing-simulator.service';
 import {TenantSettingsService} from './services/tenant-settings.service';
 
-fdescribe('Observables', () => {
+xdescribe('Observables', () => {
   let locationService: LocationService;
   let queryService: QueryService;
   let tenantSettingsService: TenantSettingsService;
