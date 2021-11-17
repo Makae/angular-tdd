@@ -1,10 +1,12 @@
 import {Location, LocationGroup, LocationsAndGroups, LocationService} from './services/location.service';
 import {combineLatest, concat, EMPTY, forkJoin, NEVER, Observable, of} from 'rxjs';
-import {map, startWith} from 'rxjs/operators';
+import {map, startWith, switchMap} from 'rxjs/operators';
+import {QueryService} from './services/query.service';
 import any = jasmine.any;
 
 describe('Observables', () => {
   const locationService = new LocationService();
+  const queryService = new QueryService();
   const myNewLocation: Location = {id: 42, name: 'My Location'};
 
   beforeEach(() => {
@@ -80,6 +82,20 @@ describe('Observables', () => {
       expect(emittedValues).toEqual(["first", "second", "third"]);
       expect(completeCalled).toBeTrue();
       expect(errorCalled).toBeFalse();
+    });
+
+    it('should call teardown', () => {
+      let didUnsubscribe = false;
+      const observable = new Observable(observer => {
+        observer.next("value");
+        observer.complete();
+        return () => {
+          didUnsubscribe = true;
+        };
+      });
+
+      observable.subscribe();
+      expect(didUnsubscribe).toBeTrue();
     });
 
   });
@@ -211,6 +227,47 @@ describe('Observables', () => {
       expect(result).toHaveSize(2);
       expect(result[0].name).toBe("Bern");
       expect(result[1].name).toBe("Matte");
+    });
+
+    it('should switch to new Observable and discard old one', () => {
+      const typingObservable = new Observable<string>(subscriber => {
+        setTimeout(() => subscriber.next("H"), 200);
+        setTimeout(() => subscriber.next("He"), 400);
+        setTimeout(() => subscriber.next("Hel"), 600);
+        setTimeout(() => subscriber.next("Hell"), 800);
+      });
+
+      let returnedResults: string[] | undefined = undefined;
+      typingObservable.pipe(switchMap(
+        (inputValue) => {
+          return queryService.lookupTypeAhead(inputValue);
+        }
+      )).subscribe(results => {
+        returnedResults = results;
+      });
+
+      // H
+      jasmine.clock().tick(201);
+      expect(queryService.unsubscribes.length).toBe(0);
+
+      // He
+      jasmine.clock().tick(201);
+      expect(queryService.unsubscribes.length).toBe(1);
+
+      // Hel
+      jasmine.clock().tick(201);
+      expect(queryService.unsubscribes.length).toBe(2);
+
+      // Hell
+      jasmine.clock().tick(201);
+      expect(queryService.unsubscribes.length).toBe(3);
+
+      // Allow the last input value "Hell" to be returning values
+      expect(returnedResults).toBeUndefined();
+      jasmine.clock().tick(300);
+
+      expect(queryService.unsubscribes.length).toBe(4);
+      expect(returnedResults as unknown as string[]).toHaveSize(3);
     });
   });
 
