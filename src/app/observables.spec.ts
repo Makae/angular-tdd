@@ -6,7 +6,7 @@ import {TypingSimulatorService} from './services/typing-simulator.service';
 import any = jasmine.any;
 import {TenantSettingsService} from './services/tenant-settings.service';
 
-fdescribe('Observables', () => {
+describe('Observables', () => {
   let locationService: LocationService;
   let queryService: QueryService;
   let typingSimulatorService: TypingSimulatorService;
@@ -180,8 +180,15 @@ fdescribe('Observables', () => {
       combineLatest([
         locationService.getLocations(),
         locationService.getLocationGroups()
-      ]).subscribe(([locations, groups]) => {
-        result = {locations, groups};
+      ]).pipe(
+        map(
+          ([locations, groups]) => ({
+            locations,
+            groups
+          })
+        )
+      ).subscribe((locationsAndGroups) => {
+        result = locationsAndGroups;
       });
       jasmine.clock().tick(100);
 

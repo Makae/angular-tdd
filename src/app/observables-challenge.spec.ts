@@ -2,10 +2,9 @@ import {Location, LocationsAndGroups, LocationService} from './services/location
 import {Observable} from 'rxjs';
 import {QueryService} from './services/query.service';
 import {TypingSimulatorService} from './services/typing-simulator.service';
-import {switchMap} from 'rxjs/operators';
 import {TenantSettingsService} from './services/tenant-settings.service';
 
-describe('Observables', () => {
+fdescribe('Observables', () => {
   let locationService: LocationService;
   let queryService: QueryService;
   let tenantSettingsService: TenantSettingsService;
@@ -36,11 +35,10 @@ describe('Observables', () => {
   it('[Challenge 1]: Parallel Requests', () => {
     let result: LocationsAndGroups | undefined;
 
-    REPLACE_WITH_YOUR_RXJS_SOLUTION
-      .subscribe((value: LocationsAndGroups) => {
-        result = value;
-        // Now we could populate the locations inside of the locationsGroups with the instances
-      });
+    REPLACE_WITH_YOUR_RXJS_SOLUTION.subscribe((value: LocationsAndGroups) => {
+      result = value;
+      // Now we could populate the locations inside of the locationsGroups with the instances
+    });
     jasmine.clock().tick(100);
 
     expect(result?.locations).toHaveSize(3);
@@ -59,10 +57,9 @@ describe('Observables', () => {
    */
   it('[Challenge 2]: Re-fetch after TenantSettings changed', () => {
     let results: Location[][] = [];
-    REPLACE_WITH_YOUR_RXJS_SOLUTION
-      .subscribe((value: Location[]) => {
-        results.push(value);
-      });
+    REPLACE_WITH_YOUR_RXJS_SOLUTION.subscribe((value: any) => {
+      results.push(value);
+    });
     jasmine.clock().tick(100);
     expect(results).toHaveSize(1);
 
@@ -90,9 +87,9 @@ describe('Observables', () => {
       });
     jasmine.clock().tick(100);
 
-    expect(result).toHaveSize(3);
+    expect(result).toHaveSize(4);
     // @ts-ignore
-    expect(result[4].name).toBe(myNewLocation.name);
+    expect(result[3].name).toBe(myNewLocation.name);
   });
 
   /**
@@ -107,9 +104,10 @@ describe('Observables', () => {
     const simulator = typingSimulatorService.getTypingSimulator();
 
     let returnedResults: string[] | undefined = undefined;
-    REPLACE_WITH_YOUR_RXJS_SOLUTION.subscribe(results => {
-      returnedResults = results;
-    });
+    REPLACE_WITH_YOUR_RXJS_SOLUTION
+      .subscribe(results => {
+        returnedResults = results;
+      });
 
 
     // H
