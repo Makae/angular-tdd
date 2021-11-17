@@ -10,7 +10,7 @@ export class QueryService {
   constructor() {
   }
 
-  public lookupTypeAhead(value: string): Observable<string[]> {
+  public lookupAutocompleteSuggestions(value: string): Observable<string[]> {
     return new Observable<string[]>(subscriber => {
 
       setTimeout(() => {

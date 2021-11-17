@@ -1,15 +1,23 @@
-import {Location, LocationGroup, LocationsAndGroups, LocationService} from './services/location.service';
+import {Location, LocationsAndGroups, LocationService} from './services/location.service';
 import {combineLatest, concat, EMPTY, forkJoin, NEVER, Observable, of} from 'rxjs';
 import {map, startWith, switchMap} from 'rxjs/operators';
 import {QueryService} from './services/query.service';
+import {TypingSimulatorService} from './services/typing-simulator.service';
 import any = jasmine.any;
+import {TenantSettingsService} from './services/tenant-settings.service';
 
-describe('Observables', () => {
-  const locationService = new LocationService();
-  const queryService = new QueryService();
+fdescribe('Observables', () => {
+  let locationService: LocationService;
+  let queryService: QueryService;
+  let typingSimulatorService: TypingSimulatorService;
+  let tenantSettingsService: TenantSettingsService;
   const myNewLocation: Location = {id: 42, name: 'My Location'};
 
   beforeEach(() => {
+    locationService = new LocationService();
+    queryService = new QueryService();
+    typingSimulatorService = new TypingSimulatorService();
+    tenantSettingsService = new TenantSettingsService();
     jasmine.clock().install();
   });
 
@@ -159,8 +167,6 @@ describe('Observables', () => {
       expect(result.completeCalled).toBeTrue();
       expect(result.errorCalled).toBeFalse();
     });
-
-
   });
 
   describe('[Combine / Coordinate Requests]', () => {
@@ -216,55 +222,68 @@ describe('Observables', () => {
       let result: any;
       concat(
         locationService.updateLocation(myNewLocation),
-        locationService.getLocationGroups()
+        locationService.getLocations()
       )
-        .pipe(map(result => result as LocationGroup[]))
-        .subscribe((value: LocationGroup[]) => {
-          return result = value;
+        .pipe(map(result => result as Location[]))
+        .subscribe((value: Location[]) => {
+          result = value;
         });
       jasmine.clock().tick(100);
 
-      expect(result).toHaveSize(2);
-      expect(result[0].name).toBe("Bern");
-      expect(result[1].name).toBe("Matte");
+      expect(result).toHaveSize(4);
+      expect(result[3].name).toBe(myNewLocation.name);
+    });
+
+    it('should trigger continuous updates', () => {
+      let results: Location[][] = [];
+      tenantSettingsService.tenantSettingsChanges()
+        .pipe(
+          switchMap(() => locationService.getLocations())
+        )
+        .subscribe((value: Location[]) => {
+          results.push(value);
+        });
+      jasmine.clock().tick(100);
+      expect(results).toHaveSize(1);
+
+      // Trigger refetch
+      tenantSettingsService.changeTenant('my-new-tenant-id');
+      jasmine.clock().tick(100);
+      expect(results).toHaveSize(2);
     });
 
     it('should switch to new Observable and discard old one', () => {
-      const typingObservable = new Observable<string>(subscriber => {
-        setTimeout(() => subscriber.next("H"), 200);
-        setTimeout(() => subscriber.next("He"), 400);
-        setTimeout(() => subscriber.next("Hel"), 600);
-        setTimeout(() => subscriber.next("Hell"), 800);
-      });
+      const simulator = typingSimulatorService.getTypingSimulator();
 
       let returnedResults: string[] | undefined = undefined;
-      typingObservable.pipe(switchMap(
-        (inputValue) => {
-          return queryService.lookupTypeAhead(inputValue);
-        }
-      )).subscribe(results => {
+      simulator.onKeyUp$
+        .pipe(switchMap(
+          (inputValue) => {
+            return queryService.lookupAutocompleteSuggestions(inputValue);
+          }
+        )).subscribe(results => {
         returnedResults = results;
       });
 
       // H
-      jasmine.clock().tick(201);
+      simulator.nextKeyStroke();
       expect(queryService.unsubscribes.length).toBe(0);
 
       // He
-      jasmine.clock().tick(201);
+      simulator.nextKeyStroke();
       expect(queryService.unsubscribes.length).toBe(1);
 
       // Hel
-      jasmine.clock().tick(201);
+      simulator.nextKeyStroke();
       expect(queryService.unsubscribes.length).toBe(2);
 
       // Hell
-      jasmine.clock().tick(201);
+      simulator.nextKeyStroke();
       expect(queryService.unsubscribes.length).toBe(3);
+      expect(returnedResults).toBeUndefined();
 
       // Allow the last input value "Hell" to be returning values
-      expect(returnedResults).toBeUndefined();
-      jasmine.clock().tick(300);
+      simulator.waitForResults();
 
       expect(queryService.unsubscribes.length).toBe(4);
       expect(returnedResults as unknown as string[]).toHaveSize(3);
