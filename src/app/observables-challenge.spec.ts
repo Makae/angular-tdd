@@ -57,7 +57,7 @@ describe('Observables', () => {
    *  locationService.getLocations()
    *
    */
-  it('[Challenge 2]: Trigger re-fetch after TenantSettings changed', () => {
+  it('[Challenge 2]: Re-fetch after TenantSettings changed', () => {
     let results: Location[][] = [];
     REPLACE_WITH_YOUR_RXJS_SOLUTION
       .subscribe((value: Location[]) => {
