@@ -1,10 +1,10 @@
 import {Location, LocationsAndGroups, LocationService} from './services/location.service';
 import {combineLatest, concat, EMPTY, forkJoin, NEVER, Observable, of} from 'rxjs';
-import {map, startWith, switchMap} from 'rxjs/operators';
+import {map, mergeMap, startWith, switchMap} from 'rxjs/operators';
 import {QueryService} from './services/query.service';
 import {TypingSimulatorService} from './services/typing-simulator.service';
-import any = jasmine.any;
 import {TenantSettingsService} from './services/tenant-settings.service';
+import any = jasmine.any;
 
 describe('Observables', () => {
   let locationService: LocationService;
@@ -106,6 +106,30 @@ describe('Observables', () => {
       expect(didUnsubscribe).toBeTrue();
     });
 
+    it('should handle highlevel observable ', () => {
+      const emittedValues: string[] = [];
+      let completeCalled = false;
+      let errorCalled = false;
+
+      const observable = new Observable<Observable<string>>(observer => {
+        observer.next(of("first"));
+        observer.next(of("second"));
+        observer.next(of("third"));
+        observer.complete();
+      });
+
+      observable.pipe(
+        mergeMap(data => data)
+      ).subscribe({
+        next: value => emittedValues.push(value),
+        complete: () => completeCalled = true,
+        error: () => errorCalled = true
+      });
+
+      expect(emittedValues).toEqual(["first", "second", "third"]);
+      expect(completeCalled).toBeTrue();
+      expect(errorCalled).toBeFalse();
+    });
   });
 
   describe('[EMPTY] Observables', () => {
