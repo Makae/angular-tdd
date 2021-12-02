@@ -2,8 +2,9 @@ import {switchMap} from 'rxjs/operators';
 import {EMPTY, Observable, of, timer} from 'rxjs';
 
 export interface Location {
-  id: number;
+  id?: number;
   name: string;
+  city?: string;
 }
 
 export interface LocationGroup {
@@ -38,7 +39,6 @@ export class LocationService {
   }
 
   public updateLocation(location: Location): Observable<void> {
-
     return timer(10).pipe(switchMap(() => {
       this.locations.push(location);
       return EMPTY;

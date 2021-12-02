@@ -1,6 +1,6 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import {ComponentFixture, TestBed} from '@angular/core/testing';
 
-import { SmartComponent } from './smart.component';
+import {SmartComponent} from './smart.component';
 
 describe('SmartComponent', () => {
   let component: SmartComponent;

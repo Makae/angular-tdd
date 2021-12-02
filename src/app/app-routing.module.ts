@@ -1,7 +1,6 @@
-import { NgModule } from '@angular/core';
-import { RouterModule, Routes } from '@angular/router';
-import {SmartComponent} from './smart/smart.component';
-import {DumbComponent} from './dumb/dumb.component';
+import {NgModule} from '@angular/core';
+import {RouterModule, Routes} from '@angular/router';
+import {DumbComponent} from './components/dumb/dumb.component';
 
 const routes: Routes = [
   {path: '', component: DumbComponent}
